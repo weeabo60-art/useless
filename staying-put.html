@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>staying put. a tiny game</title>
+<style>
+  /* ============ base ============ */
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    background:linear-gradient(180deg,#fff6ea 0%,#ffe9d6 100%);
+    color:#4a3728;
+    min-height:100vh;
+    min-height:100dvh;
+    display:flex;
+    justify-content:center;
+    padding:min(5vh,40px) 14px min(3vh,22px);
+    -webkit-user-select:none; user-select:none;
+    touch-action:manipulation;
+    overflow-x:hidden;
+  }
+  .card{
+    width:100%;max-width:640px;
+    margin:auto;
+    background:#fffdf8;
+    border:1px solid #ffe9d2;
+    border-radius:28px;
+    padding:28px 22px 34px;
+    box-shadow:0 14px 44px rgba(180,120,70,.18);
+    position:relative;
+    overflow:hidden;
+  }
+  /* ============ title ============ */
+  .hearts-bg{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
+  .hbg{position:absolute;bottom:-24px;animation:floatUp linear infinite;}
+  @keyframes floatUp{
+    0%{transform:translateY(0) rotate(0deg);opacity:0;}
+    12%{opacity:.55;}
+    100%{transform:translateY(-115vh) rotate(28deg);opacity:0;}
+  }
+  .title-wrap{position:relative;text-align:center;padding:46px 0 10px;}
+  .title-word{
+    font-size:clamp(46px,11vw,74px);font-weight:900;letter-spacing:-2px;
+    color:#ff7a59;line-height:1;text-shadow:0 3px 0 #ffd9c4;
+  }
+  .title-sub{
+    margin-top:10px;font-family:Georgia,'Times New Roman',serif;font-style:italic;
+    font-size:clamp(14px,3.4vw,17px);color:#a97f5f;line-height:1.6;
+  }
+  .title-tease{
+    margin:26px auto 0;max-width:420px;
+    font-family:Georgia,'Times New Roman',serif;font-style:italic;
+    font-size:clamp(14px,3.2vw,16px);color:#8a5a3b;line-height:1.8;
+  }
+  .btn{
+    font:inherit;font-size:17px;font-weight:800;color:#fff;
+    border:none;border-radius:999px;cursor:pointer;
+    padding:15px 34px;
+    background:#ff8f6b;
+    box-shadow:0 6px 0 #d96a44, 0 10px 20px rgba(217,106,68,.28);
+    transition:transform .08s ease, box-shadow .08s ease, opacity .4s;
+    margin-top:22px;
+  }
+  .btn:hover{transform:translateY(-1px);}
+  .btn:active{transform:translateY(4px);box-shadow:0 2px 0 #d96a44, 0 4px 10px rgba(217,106,68,.25);}
+  .btn.soft{background:#f6d9b4;color:#6b4a2f;box-shadow:0 6px 0 #d9a86f, 0 10px 20px rgba(217,168,111,.25);}
+  .btn.soft:active{box-shadow:0 2px 0 #d9a86f;}
+  .tiny{margin-top:16px;font-size:12.5px;color:#b98d6a;line-height:1.6;}
+  /* ============ chapter cards ============ */
+  .ch-label{
+    font-size:12px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;
+    color:#d9a86f;margin-bottom:16px;
+  }
+  .lines{display:flex;flex-direction:column;gap:4px;}
+  .pl{
+    font-family:Georgia,'Times New Roman',serif;font-style:italic;
+    font-size:clamp(17px,3.6vw,21px);line-height:1.6;color:#5b4032;
+    opacity:0;transform:translateY(10px);
+    animation:rise .8s ease forwards;
+  }
+  .pl-sp{height:12px;}
+  @keyframes rise{to{opacity:1;transform:none;}}
+  /* ============ game scene ============ */
+  .game-card{padding-bottom:26px;}
+  .hud{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    margin-bottom:12px;font-size:13.5px;font-weight:700;color:#8a5a3b;
+  }
+  .ch-hearts{color:#e8c4a8;letter-spacing:1px;font-size:14px;}
+  .ch-hearts .on{color:#ff7a59;}
+  .hud-r{display:flex;align-items:center;gap:8px;font-size:13px;}
+  .tbar{width:110px;height:9px;background:#f6dfc4;border-radius:99px;overflow:hidden;}
+  .tfill{height:100%;width:100%;background:#ff8f6b;border-radius:99px;}
+  .warmwrap{display:flex;align-items:center;gap:8px;}
+  .heart{color:#ff6b8a;font-size:17px;}
+  .warmbar{width:120px;height:10px;background:#e6dcf2;border-radius:99px;overflow:hidden;}
+  .warmfill{height:100%;width:0%;background:linear-gradient(90deg,#ff9db4,#ff6b8a);border-radius:99px;transition:width .25s;}
+  .scene{
+    position:relative;width:100%;
+    height:clamp(220px,min(50vw,44vh),400px);
+    border-radius:20px;overflow:hidden;border:2px solid #ffdfc2;
+    touch-action:none;cursor:default;
+  }
+  .warm{background:linear-gradient(180deg,#ffe9cf 0%,#ffd7b3 100%);}
+  .night{background:linear-gradient(180deg,#232445 0%,#41456f 62%,#565a8c 100%);border-color:#4b4f86;}
+  .game-hint{margin-top:11px;text-align:center;font-size:13px;font-style:italic;color:#a97f5f;}
+  .floor{position:absolute;left:0;right:0;bottom:0;height:26px;background:rgba(138,90,59,.13);}
+  /* ============ blobs & faces ============ */
+  .blob{position:absolute;border-radius:48% 52% 50% 50% / 56% 56% 44% 44%;
+    box-shadow:inset -6px -9px 0 rgba(0,0,0,.07);}
+  .blob .eye{position:absolute;top:36%;width:8px;height:9px;border-radius:50%;background:#43322b;}
+  .blob .e1{left:27%;} .blob .e2{right:27%;}
+  .blob .mouth{position:absolute;top:56%;left:50%;transform:translateX(-50%);
+    width:15px;height:8px;border-bottom:3px solid #43322b;border-radius:0 0 10px 10px;}
+  .blob .blush{position:absolute;top:46%;width:11px;height:6px;border-radius:50%;
+    background:rgba(255,110,120,.45);}
+  .blob .b1{left:10%;} .blob .b2{right:10%;}
+  .blob.face-happy .eye{width:4px;height:11px;border-radius:3px;top:34%;}
+  .blob.face-happy .mouth{width:20px;height:11px;border-bottom-width:3.5px;border-radius:0 0 14px 14px;}
+  .blob.face-laugh .eye{width:4px;height:11px;border-radius:3px;top:33%;}
+  .blob.face-laugh .mouth{width:16px;height:12px;border-bottom:none;background:#43322b;border-radius:6px 6px 9px 9px;top:55%;}
+  .blob.face-quiet .eye{top:41%;width:7px;height:8px;}
+  .blob.face-quiet .mouth{width:11px;height:4px;border-bottom-width:2.5px;border-radius:0 0 8px 8px;top:58%;}
+  .blob.face-smile .mouth{width:19px;height:10px;border-bottom-width:3.5px;border-radius:0 0 14px 14px;}
+  .blob.squat{border-radius:50% 50% 58% 42% / 72% 72% 28% 28%;}
+  .glowblob{box-shadow:0 0 22px 5px rgba(255,190,130,.55), inset -6px -9px 0 rgba(0,0,0,.05);}
+  .sparkle{position:absolute;font-size:15px;color:#ffd98a;animation:twinkle 2s infinite;pointer-events:none;}
+  @keyframes twinkle{0%,100%{opacity:.3;transform:scale(.8);}50%{opacity:1;transform:scale(1.1);}}
+  .arrive{animation:slidein 1.1s cubic-bezier(.2,.8,.25,1) forwards;}
+  @keyframes slidein{from{transform:translateX(150px);opacity:0;}to{transform:none;opacity:1;}}
+  /* ============ game 1: the words you almost said ============ */
+  .you-stand{position:absolute;left:7%;bottom:26px;z-index:5;}
+  .her-stand{position:absolute;left:46%;bottom:26px;z-index:6;}
+  .stand{position:absolute;}
+  .you-stand .blob,.her-stand .blob,.her-arrive .blob,.stand .blob{position:relative;display:block;}
+  .her-stand .blob{animation:breathe 2.6s ease-in-out infinite;}
+  .her-stand.closer{left:26%;transition:left 1.1s cubic-bezier(.3,.8,.3,1);}
+  @keyframes breathe{0%,100%{transform:scale(1);}50%{transform:scale(1.04);}}
+  .quip{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:88%;
+    font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:14px;
+    color:#a97f5f;text-align:center;opacity:0;transition:opacity .35s;z-index:8;}
+  .quip.show{opacity:1;}
+  .wchip{
+    position:absolute;z-index:7;white-space:nowrap;padding:3px 10px;border-radius:999px;
+    background:#fff;border:2px dashed #ffc9a3;color:#8a5a3b;font-weight:800;
+    box-shadow:0 3px 8px rgba(138,90,59,.15);pointer-events:none;will-change:transform;
+  }
+  .wchip.landed{opacity:.75;color:#b98d6a;border-color:#eecdb2;background:#fffaf4;}
+  .saybar{display:flex;gap:10px;margin-top:14px;align-items:center;}
+  #sayInput{
+    flex:1;min-width:0;padding:13px 18px;border-radius:999px;
+    border:2px solid #ffc9a3;background:#fff;font:inherit;font-size:16px;color:#5b4032;
+    outline:none;
+  }
+  #sayInput:focus{border-color:#ff8f6b;box-shadow:0 0 0 4px rgba(255,143,107,.15);}
+  #sayInput::placeholder{color:#d4a982;font-style:italic;}
+  #sayInput:disabled{opacity:.55;}
+  .btn.small{padding:12px 22px;font-size:15px;margin-top:0;flex-shrink:0;}
+  .btn:disabled{opacity:.55;transform:none;box-shadow:0 6px 0 #d96a44, 0 6px 12px rgba(217,106,68,.2);}
+  .saybar.shake{animation:shakex .22s ease 2;}
+  @keyframes shakex{0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);}}
+  /* ============ game 2: the laugh ============ */
+  .guest{
+    position:absolute;width:62px;height:58px;cursor:pointer;
+    border-radius:50% 50% 52% 48% / 58% 58% 42% 42%;
+    box-shadow:inset -5px -8px 0 rgba(0,0,0,.07);z-index:5;
+    transition:transform .12s;
+  }
+  .guest:hover{transform:scale(1.06);}
+  .guest.laughing{animation:bounce .38s ease-in-out infinite alternate;}
+  @keyframes bounce{from{transform:translateY(0);}to{transform:translateY(-9px);}}
+  .bub{position:absolute;top:-22px;left:50%;transform:translateX(-50%);font-weight:900;color:#e0712f;font-size:14px;white-space:nowrap;}
+  .laughball{
+    position:absolute;width:36px;height:36px;border-radius:50%;z-index:7;
+    background:radial-gradient(circle at 35% 30%,#fff3b0,#ffc93c);
+    display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:900;color:#a06a00;
+    box-shadow:0 0 16px rgba(255,201,60,.95);
+    pointer-events:none;
+  }
+  .ha{
+    position:absolute;font-weight:900;color:#e0712f;font-size:15px;z-index:8;
+    animation:hafly .95s ease-out forwards;pointer-events:none;white-space:nowrap;
+  }
+  @keyframes hafly{to{transform:translateY(-52px) scale(1.5);opacity:0;}}
+  .room-shake{animation:shake .3s linear infinite;}
+  @keyframes shake{0%,100%{transform:translate(0,0);}25%{transform:translate(-3px,2px);}75%{transform:translate(3px,-2px);}}
+  .her-arrive{position:absolute;right:6%;bottom:8%;z-index:9;animation:slidein 1s cubic-bezier(.2,.8,.25,1) forwards;}
+  /* ============ game 3: quiet ============ */
+  .moon{position:absolute;top:24px;right:34px;width:52px;height:52px;border-radius:50%;
+    background:#ffe9b8;box-shadow:0 0 26px 7px rgba(255,233,184,.45);}
+  .star{position:absolute;border-radius:50%;background:#fff;animation:twinkle 2.6s infinite;}
+  .bench{
+    position:absolute;left:50%;transform:translateX(-50%);bottom:9%;z-index:3;
+    width:235px;height:30px;background:#8a5a3b;border-radius:10px;
+    box-shadow:0 7px 0 #6f4629;
+  }
+  .bench::before,.bench::after{content:'';position:absolute;bottom:-16px;width:11px;height:18px;background:#6f4629;border-radius:4px;}
+  .bench::before{left:18px;} .bench::after{right:18px;}
+  .option{
+    position:absolute;z-index:8;padding:10px 15px;border-radius:16px;
+    background:#fff;border:2px solid #d9c4f5;color:#6b4a8f;
+    font-size:14px;font-weight:800;cursor:pointer;
+    box-shadow:0 5px 12px rgba(0,0,0,.22);animation:rise .4s ease;
+  }
+  .option.center{left:50%;transform:translateX(-50%);top:14px;max-width:82%;white-space:normal;}
+  .option:hover{background:#faf4ff;}
+  .awk{
+    position:absolute;z-index:8;left:50%;transform:translateX(-50%);top:64px;width:84%;text-align:center;
+    font-family:Georgia,'Times New Roman',serif;font-style:italic;
+    font-size:14px;color:#cfc3f2;animation:rise .3s ease;
+  }
+  .staybtn{
+    position:absolute;left:50%;transform:translateX(-50%);bottom:12px;z-index:9;
+    padding:13px 24px;border-radius:999px;border:none;cursor:pointer;
+    background:#fff;color:#7a5aa8;font:inherit;font-weight:800;font-size:15px;
+    box-shadow:0 5px 14px rgba(0,0,0,.25);
+    animation:pulse 2.2s infinite;
+  }
+  @keyframes pulse{
+    0%,100%{box-shadow:0 5px 14px rgba(0,0,0,.25),0 0 0 0 rgba(255,255,255,.4);}
+    50%{box-shadow:0 5px 14px rgba(0,0,0,.25),0 0 0 14px rgba(255,255,255,0);}
+  }
+  .staymsg{position:absolute;left:50%;transform:translateX(-50%);bottom:64px;z-index:9;
+    font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:13.5px;color:#cfc3f2;
+    opacity:0;transition:opacity .4s;}
+  .staymsg.show{opacity:1;}
+  /* ============ game 4: staying put ============ */
+  .scene-label{position:absolute;top:18px;left:50%;transform:translateX(-50%);
+    font-family:Georgia,'Times New Roman',serif;font-style:italic;color:#cfc3f2;font-size:16px;z-index:6;}
+  .hand{position:absolute;width:36px;height:36px;border-radius:50%;z-index:8;
+    background:#ffd9b8;border:3px solid #e8b28a;box-shadow:0 4px 10px rgba(0,0,0,.2);}
+  .hand.mine{left:43%;bottom:24%;animation:tremble .13s linear infinite;}
+  @keyframes tremble{
+    0%{transform:translate(0,0);}25%{transform:translate(1.4px,-1.2px);}
+    50%{transform:translate(-1.2px,.6px);}75%{transform:translate(.8px,1.2px);}100%{transform:translate(0,0);}
+  }
+  .hand.mine.reach{animation:none;transition:transform 1.3s cubic-bezier(.3,.9,.3,1.1);transform:translate(58px,-8px);}
+  .hand.mine.calm{animation:none;}
+  .hand.hers{right:30%;bottom:24%;}
+  .hand.hers.accept{transition:transform .9s ease;transform:translate(-18px,-2px);}
+  .glow{position:absolute;inset:0;pointer-events:none;z-index:7;
+    background:radial-gradient(circle at 50% 58%,rgba(255,190,120,.5),transparent 68%);
+    opacity:0;transition:opacity 1.4s;}
+  .glow.on{opacity:1;}
+  .hburst{position:absolute;font-size:19px;z-index:10;pointer-events:none;animation:burst 1s ease-out forwards;}
+  @keyframes burst{to{transform:translate(var(--dx),var(--dy)) scale(1.7);opacity:0;}}
+  .btnrow{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:16px;}
+  .btnrow .btn{margin-top:0;}
+  /* ============ overlay ============ */
+  .overlay{
+    position:absolute;inset:0;z-index:30;background:rgba(255,248,238,.9);
+    display:flex;align-items:center;justify-content:center;padding:18px;
+  }
+  .overlay.night-o{background:rgba(35,36,69,.82);}
+  .o-card{max-width:430px;width:100%;text-align:center;animation:rise .5s ease;}
+  .o-quote{font-family:Georgia,'Times New Roman',serif;font-style:italic;
+    font-size:clamp(17px,3.8vw,21px);color:#8a5a3b;line-height:1.6;}
+  .overlay.night-o .o-quote{color:#f0e6ff;}
+  .overlay.night-o .o-text{color:#cfc3f2;}
+  .o-text{margin:12px auto 6px;font-size:14.5px;color:#6b4a33;line-height:1.7;max-width:380px;}
+  .hidden{display:none !important;}
+  /* ============ poem card ============ */
+  .poem-title{font-size:clamp(34px,8vw,52px);font-weight:900;letter-spacing:-1.5px;
+    color:#ff7a59;text-shadow:0 2px 0 #ffd9c4;text-align:center;margin:8px 0 6px;}
+  .poem-sub{text-align:center;font-family:Georgia,'Times New Roman',serif;font-style:italic;
+    color:#a97f5f;font-size:14px;margin-bottom:26px;}
+  .poem-card .pl{font-size:clamp(16px,3.4vw,19px);}
+  .poem-foot{text-align:center;font-size:12.5px;color:#b98d6a;margin-top:28px;line-height:1.8;}
+  /* ============ soundtrack ============ */
+  #musicBtn{
+    position:fixed;top:14px;left:14px;z-index:60;width:46px;height:46px;border-radius:50%;
+    border:2px solid #ffd9c4;background:#fff;font-size:19px;cursor:pointer;
+    box-shadow:0 4px 14px rgba(180,120,70,.2);color:#8a5a3b;
+  }
+  #musicBtn.off{opacity:.45;filter:grayscale(1);}
+  #ytPanel{
+    position:fixed;bottom:14px;right:14px;z-index:55;
+    width:clamp(200px,28vw,300px);
+    background:#fffdf8;border:2px solid #ffd9c4;border-radius:16px;
+    box-shadow:0 10px 30px rgba(180,120,70,.28);
+    overflow:hidden;
+    font-family:'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  }
+  #ytPanel.hidden{display:none;}
+  .yt-head{display:flex;align-items:center;gap:4px;padding:6px 8px;border-bottom:1px solid #ffe9d2;}
+  .yt-title{flex:1;font-size:11.5px;font-weight:800;color:#8a5a3b;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .yt-link{font-size:13px;text-decoration:none;color:#d9a86f;font-weight:800;
+    padding:2px 7px;border-radius:8px;cursor:pointer;}
+  .yt-link:hover{background:#fff3e4;}
+  .yt-close{font-size:14px;color:#b98d6a;background:none;border:none;cursor:pointer;
+    padding:2px 7px;border-radius:8px;font-weight:800;}
+  .yt-close:hover{background:#fff3e4;}
+  .yt-frame{position:relative;width:100%;aspect-ratio:16/9;background:#000;}
+  .yt-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
+  @media (max-width:430px){
+    .btn{width:100%;}
+    .btnrow .btn{width:auto;}
+  }
+</style>
+</head>
+<body>
+<button id="musicBtn" title="show / hide the soundtrack player">🎵</button>
+<div id="ytPanel">
+  <div class="yt-head">
+    <span class="yt-title">♪ melukis senja · budi doremi</span>
+    <a class="yt-link" href="https://www.youtube.com/watch?v=qZIQAk-BUEc" target="_blank" rel="noopener" title="open on youtube">↗</a>
+    <button class="yt-close" id="ytClose" title="hide">✕</button>
+  </div>
+  <div class="yt-frame">
+    <iframe id="ytFrame" title="melukis senja by budi doremi"
+      src="https://www.youtube.com/embed/qZIQAk-BUEc?autoplay=1&amp;mute=1&amp;playsinline=1&amp;rel=0&amp;loop=1&amp;playlist=qZIQAk-BUEc"
+      allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+  </div>
+</div>
+<div id="app"></div>
+
+<script>
+/* ================================================================
+   staying put. a tiny game made from a poem.
+   everything here is inline. no network. works offline.
+   ================================================================ */
+
+// ---------- tiny helpers ----------
+const app = document.getElementById('app');
+let __raf = null, __timers = [];
+function el(tag, cls, html){ const e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e; }
+function setScreen(html){ clearRaf(); clearTimers(); app.innerHTML = html; }
+function clearRaf(){ if(__raf){ cancelAnimationFrame(__raf); __raf=null; } }
+function frame(fn){ clearRaf(); const step=(t)=>{ fn(t); __raf=requestAnimationFrame(step); }; __raf=requestAnimationFrame(step); }
+function tick(fn, ms){ __timers.push(setTimeout(fn, ms)); }
+function clearTimers(){ __timers.forEach(clearTimeout); __timers.length = 0; }
+function $ (id){ return document.getElementById(id); }
+
+// ---------- the poem ----------
+const POEM = [
+  'Every time you walk in, whatever I was about to say',
+  'just disappears.',
+  'I had something good, I swear.',
+  "It's on the floor somewhere with my composure.",
+  '',
+  "And yes, you're beautiful. That's the boring part,",
+  'the part everyone notices first, including me.',
+  "But I realised there's more of you: the laugh,",
+  'the joy with no manners,',
+  'the kind that grabs a whole room by the collar',
+  "and shakes it until it's laughing too.",
+  '',
+  'But sometimes you go quiet,',
+  'alone with yourself,',
+  'and I see you in those moments,',
+  'and I want to be beside you,',
+  'to help, to stay,',
+  "and I don't know how.",
+  'So I stand there, useless,',
+  'hands in my pockets.',
+  '',
+  "There's no phrase or words for the exact way",
+  'of saying my feelings towards you,',
+  "so here's this instead:",
+  'I stayed quiet, grinning like an idiot,',
+  'watching you do the thing you do,',
+  'and staying put, even when my hands shake.',
+];
+
+// ---------- blobs & faces ----------
+function faceHTML(){
+  return '<span class="eye e1"></span><span class="eye e2"></span><span class="mouth"></span>' +
+         '<span class="blush b1"></span><span class="blush b2"></span>';
+}
+function blobHTML(color, face, size, extra){
+  return '<div class="blob '+face+'" style="width:'+size+'px;height:'+Math.round(size*0.95)+'px;background:'+color+';'+(extra||'')+'">' + faceHTML() + '</div>';
+}
+function sparkleHTML(size){
+  return '<span class="sparkle" style="font-size:'+(size||15)+'px">✦</span>';
+}
+
+// ---------- decorative helpers ----------
+function heartsBG(n){
+  const parts = [];
+  for(let i=0;i<n;i++){
+    const ch = Math.random() < .75 ? '♥' : '✦';
+    const left = Math.random()*100, dur = (6+Math.random()*9).toFixed(1),
+          delay = (Math.random()*8).toFixed(1), fs = (11+Math.random()*12).toFixed(0);
+    parts.push('<span class="hbg" style="left:'+left+'%;font-size:'+fs+'px;color:#ffb39a;animation-duration:'+dur+'s;animation-delay:'+delay+'s">'+ch+'</span>');
+  }
+  return '<div class="hearts-bg">'+parts.join('')+'</div>';
+}
+function starsHTML(n){
+  const parts = [];
+  for(let i=0;i<n;i++){
+    parts.push('<span class="star" style="left:'+(Math.random()*96+2).toFixed(1)+'%;top:'+(Math.random()*60+4).toFixed(1)+'%;width:'+(2+Math.random()*3).toFixed(1)+'px;height:'+(2+Math.random()*3).toFixed(1)+'px;animation-delay:'+(Math.random()*2.5).toFixed(2)+'s"></span>');
+  }
+  return parts.join('');
+}
+function heartsRow(ch){
+  const s = [1,2,3,4].map(i => '<span class="'+(i<=ch?'on':'')+'">♥</span>').join('');
+  return '<span class="ch-hearts">'+s+'</span>';
+}
+
+// ---------- soundtrack: melukis senja (budi doremi) ----------
+// a real, visible youtube player in the corner. no api, no loading
+// state, no silent failures: you see exactly what youtube does.
+const ytPanel = $('ytPanel');
+$('ytClose').addEventListener('click', ()=>{ ytPanel.classList.add('hidden'); $('musicBtn').classList.add('off'); });
+$('musicBtn').addEventListener('click', ()=>{
+  const hidden = ytPanel.classList.toggle('hidden');
+  $('musicBtn').classList.toggle('off', hidden);
+});
+
+// ---------- overlay ----------
+function showOverlay(html, night){
+  const o = $('overlay'); if(!o) return;
+  o.innerHTML = '<div class="o-card">'+html+'</div>';
+  o.classList.remove('hidden');
+  if(night) o.classList.add('night-o');
+  const b = o.querySelector('[data-cont]');
+  if(b) b.onclick = () => { if(typeof onContinue === 'function'){} };
+  return o;
+}
+
+// ================================================================
+// TITLE
+// ================================================================
+function titleScreen(){
+  setScreen(
+    '<div class="card">' + heartsBG(16) +
+    '<div class="title-wrap">' +
+      '<div class="title-word">staying put</div>' +
+      '<div class="title-sub">a tiny game made from a poem<br>about words that run away</div>' +
+      '<div class="title-tease">' +
+        '"Every time you walk in, whatever I was about to say<br>' +
+        'just disappears. I had something good, I swear."' +
+      '</div>' +
+      '<button class="btn" id="startBtn">begin</button>' +
+      '<div class="tiny">four small moments. no way to lose. mostly.<br>♪ soundtrack: melukis senja · budi doremi</div>' +
+    '</div></div>'
+  );
+  $('startBtn').onclick = () => { ch1Card(); };
+}
+function chapterCard(lines, next, ch, night){
+  const ls = lines.map((l,i) =>
+    '<div class="pl" style="animation-delay:'+(0.35+i*0.8)+'s">'+l+'</div>'
+  ).join('');
+  setScreen(
+    '<div class="card">' +
+    '<div class="ch-label">chapter '+ch+' of 4</div>' +
+    '<div class="lines">'+ls+'</div>' +
+    '<button class="btn" id="contBtn" style="opacity:0;pointer-events:none">continue</button>' +
+    '</div>'
+  );
+  tick(() => {
+    const b = $('contBtn'); if(!b) return;
+    b.style.opacity = 1; b.style.pointerEvents = 'auto';
+    b.onclick = next;
+  }, 600 + lines.length*800 + 250);
+}
+function ch1Card(){
+  chapterCard([
+    'Every time you walk in, whatever I was about to say',
+    'just disappears.',
+    'I had something good, I swear.',
+    "It's on the floor somewhere, with my composure."
+  ], gameOne, 1);
+}
+function ch2Card(){
+  chapterCard([
+    "And yes, you're beautiful. That's the boring part,",
+    'the part everyone notices first, including me.',
+    "But I realised there's more of you: the laugh,",
+    'the joy with no manners.'
+  ], gameTwo, 2);
+}
+function ch3Card(){
+  chapterCard([
+    'But sometimes you go quiet,',
+    'alone with yourself,',
+    'and I see you in those moments,',
+    'and I want to be beside you. To help. To stay.',
+    "And I don't know how."
+  ], gameThree, 3);
+}
+function ch4Card(){
+  chapterCard([
+    "There's no phrase or words for the exact way",
+    'of saying my feelings towards you,',
+    "so here's this instead:"
+  ], gameFour, 4);
+}
+
+// ================================================================
+// GAME 1. the words you almost said
+// ================================================================
+function gameOne(){
+  setScreen(
+    '<div class="card game-card">' +
+      '<div class="hud"><div>'+heartsRow(1)+' words you almost said</div>' +
+      '<div class="hud-r">tries left: <b id="triesN">3</b></div></div>' +
+      '<div class="scene warm" id="scene">' +
+        '<div class="floor"></div>' +
+        '<div class="quip" id="quip"></div>' +
+        '<div class="you-stand">' + blobHTML('#bcd7e8','face-happy',64) + '</div>' +
+        '<div class="her-stand arrive" id="herBlob">' + blobHTML('#ffc7c0','face-happy',72) + sparkleHTML(15) + '</div>' +
+        '<div class="overlay hidden" id="overlay"></div>' +
+      '</div>' +
+      '<div class="saybar" id="saybar">' +
+        '<input id="sayInput" maxlength="60" placeholder="type something to say\u2026" enterkeyhint="send" autocomplete="off" autocapitalize="off" spellcheck="false">' +
+        '<button class="btn small" id="sayBtn">send it</button>' +
+      '</div>' +
+      '<div class="game-hint">press enter to say it. the words will break. they always break.</div>' +
+    '</div>'
+  );
+  const scene = $('scene');
+  const W = () => scene.clientWidth, H = () => scene.clientHeight;
+  const input = $('sayInput'), sayBtn = $('sayBtn');
+  const QUIPS = [
+    'it broke. you can\u2019t send it.',
+    'the words fell apart. of course they did.',
+    'it\u2019s all on the floor now. all of it.'
+  ];
+  let tries = 3, finished = false, attemptN = 0;
+  const chips = [];
+
+  // she walked in. the words went quiet.
+  tick(()=> quip('she walked in. you had something.'), 900);
+
+  function quip(t){
+    const q = $('quip'); if(!q) return;
+    q.textContent = t;
+    q.classList.remove('show');
+    void q.offsetWidth;
+    q.classList.add('show');
+    tick(()=>{ if(!finished) q.classList.remove('show'); }, 2400);
+  }
+  function shakeBar(){
+    const sb = $('saybar'); if(!sb) return;
+    sb.classList.add('shake');
+    tick(()=> sb.classList.remove('shake'), 500);
+  }
+  function breakWords(txt){
+    const ws = txt.split(/\s+/);
+    const sx = 78, sy = H()-58;
+    ws.forEach((w)=>{
+      const c = document.createElement('div');
+      c.className = 'wchip'; c.textContent = w;
+      c.style.left = '0px'; c.style.top = '0px';
+      scene.appendChild(c);
+      chips.push({
+        el:c, x:sx+(Math.random()*16-8), y:sy-(Math.random()*12),
+        vx:50+Math.random()*210, vy:-(150+Math.random()*260),
+        rot:Math.random()*30-15, vr:(Math.random()*340-170),
+        landed:false
+      });
+    });
+  }
+  function attempt(){
+    if(finished) return;
+    const txt = input.value.trim();
+    if(!txt){ shakeBar(); quip('you had something. what was it?'); return; }
+    tries--; attemptN++;
+    $('triesN').textContent = tries;
+    input.value = '';
+    breakWords(txt);
+    quip(QUIPS[Math.min(attemptN, QUIPS.length)-1]);
+    if(tries <= 0){
+      input.disabled = true; sayBtn.disabled = true;
+      input.placeholder = 'nothing left to say.';
+      tick(endCh1, 1500);
+    }
+  }
+  input.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter'){ e.preventDefault(); attempt(); }
+  });
+  sayBtn.addEventListener('click', attempt);
+
+  // physics: words burst apart, tumble, and land on the floor
+  frame(()=>{
+    const Wc = W(), Hc = H();
+    const floorY = Hc - 26 - 13;
+    for(let i=chips.length-1;i>=0;i--){
+      const c = chips[i];
+      if(c.landed) continue;
+      c.vy += 1150*0.016;
+      c.x += c.vx*0.016; c.y += c.vy*0.016;
+      c.rot += c.vr*0.016;
+      if(c.y > floorY){
+        c.y = floorY;
+        c.vy = -c.vy*0.32; c.vx *= 0.72; c.vr *= 0.5;
+        if(Math.abs(c.vy) < 34){ c.landed = true; c.el.classList.add('landed'); }
+      }
+      if(c.x < 8) c.x = 8;
+      if(c.x > Wc-30) c.x = Wc-30;
+      c.el.style.transform = 'translate('+c.x.toFixed(0)+'px,'+c.y.toFixed(0)+'px) rotate('+c.rot.toFixed(1)+'deg)';
+    }
+    if(finished) return;
+  });
+
+  function endCh1(){
+    finished = true; clearRaf();
+    const hb = $('herBlob');
+    if(hb){
+      hb.classList.add('closer');
+      const blob = hb.querySelector('.blob');
+      if(blob) blob.classList.add('face-smile');
+    }
+    tick(()=>{
+      const o = showOverlay(
+        '<div class="o-quote">I had something good, I swear.</div>' +
+        '<div class="o-text">It\u2019s on the floor somewhere, with my composure.<br><br>she never heard any of it. she never does.</div>' +
+        '<button class="btn" data-cont>continue</button>'
+      );
+      o.querySelector('[data-cont]').onclick = ch2Card;
+    }, 1600);
+  }
+}
+
+// ================================================================
+// GAME 2. the noise of you
+// ================================================================
+function gameTwo(){
+  setScreen(
+    '<div class="card game-card">' +
+      '<div class="hud"><div>'+heartsRow(2)+' the noise of you</div>' +
+      '<div class="hud-r">laughing <b id="laughN">0</b>/8<div class="tbar"><div class="tfill" id="tFill"></div></div></div></div>' +
+      '<div class="scene warm" id="scene">' +
+        '<div class="floor"></div>' +
+        '<div class="laughball" id="ball">ha!</div>' +
+        '<div class="overlay hidden" id="overlay"></div>' +
+      '</div>' +
+      '<div class="game-hint">tap a guest to send the laugh their way</div>' +
+    '</div>'
+  );
+  const scene = $('scene');
+  const colors = ['#ffb3a7','#ffd6a5','#b8e0c9','#b7d7f0','#e3c7f0','#ffc3d8','#f7e6a4','#c9e8c4'];
+  const guests = [], N = 8;
+  for(let i=0;i<N;i++){
+    const g = document.createElement('div');
+    g.className = 'guest'; g.style.background = colors[i];
+    g.innerHTML = faceHTML();
+    scene.appendChild(g);
+    const ang = Math.PI*2*i/N - Math.PI/2 + (Math.random()*0.2-0.1);
+    const guest = {
+      el:g,
+      fx:0.5+Math.cos(ang)*0.33,
+      fy:0.5+Math.sin(ang)*0.28,
+      laughing:false, r:31
+    };
+    g.style.left = (guest.fx*100).toFixed(2)+'%';
+    g.style.top  = (guest.fy*100).toFixed(2)+'%';
+    g.style.marginLeft = '-31px'; g.style.marginTop = '-29px';
+    guests.push(guest);
+    g.addEventListener('pointerdown', ()=>{
+      if(!guest.laughing) target = guest;
+    });
+  }
+  const ball = $('ball');
+  let W = scene.clientWidth, H = scene.clientHeight;
+  let pos = {x:W*0.5, y:H*0.5};
+  let ang0 = Math.random()*6.28;
+  let vel = {x:Math.cos(ang0)*0.24*Math.min(W,H), y:Math.sin(ang0)*0.24*Math.min(W,H)};
+  let target = null, laughs = 0, finished = false;
+  const t0 = performance.now(), END = 35000;
+
+  function spawnHa(x, y){
+    const h = document.createElement('div');
+    h.className = 'ha';
+    h.textContent = ['ha!','haha!','hee!','ahaha!'][Math.floor(Math.random()*4)];
+    h.style.left = x+'px'; h.style.top = y+'px';
+    scene.appendChild(h);
+    tick(()=>{ if(h.parentNode) h.remove(); }, 1000);
+  }
+  function laughAt(g, now){
+    if(g.laughing) return;
+    g.laughing = true;
+    g.el.classList.add('laughing');
+    g.el.innerHTML = faceHTML() + '<span class="bub">ha ha!</span>';
+    spawnHa(g.el.offsetLeft+22, g.el.offsetTop+6);
+    laughs++;
+    const ln = $('laughN'); if(ln) ln.textContent = laughs;
+    const sp = 0.26*Math.min(W,H);
+    const a = Math.atan2(g.fy*H-pos.y, g.fx*W-pos.x);
+    vel.x = -Math.cos(a)*sp;
+    vel.y = -Math.sin(a)*sp;
+    if(target === g) target = null;
+    if(laughs >= N) finishG2(true);
+  }
+
+  frame(()=>{
+    const nw = scene.clientWidth, nh = scene.clientHeight;
+    if(nw !== W || nh !== H){ pos.x *= nw/W; pos.y *= nh/H; W = nw; H = nh; }
+    const now = performance.now();
+    // gentle random wander so the laugh never gets stuck
+    vel.x += (Math.random()-0.5)*14;
+    vel.y += (Math.random()-0.5)*14;
+    const maxV = 0.42*Math.min(W,H);
+    const spd = Math.hypot(vel.x, vel.y);
+    if(spd > maxV){ vel.x *= maxV/spd; vel.y *= maxV/spd; }
+    if(target && !target.laughing){
+      const tx = target.fx*W, ty = target.fy*H;
+      const dx = tx-pos.x, dy = ty-pos.y, d = Math.hypot(dx,dy);
+      if(d < 10){ target = null; }
+      else{
+        const s = 0.34*Math.min(W,H);
+        vel.x += (dx/d*s - vel.x)*0.10;
+        vel.y += (dy/d*s - vel.y)*0.10;
+      }
+    }
+    pos.x += vel.x*0.016; pos.y += vel.y*0.016;
+    const r = 18;
+    if(pos.x < r){ pos.x = r; vel.x = Math.abs(vel.x)*0.97; }
+    if(pos.x > W-r){ pos.x = W-r; vel.x = -Math.abs(vel.x)*0.97; }
+    if(pos.y < r){ pos.y = r; vel.y = Math.abs(vel.y)*0.97; }
+    if(pos.y > H-r){ pos.y = H-r; vel.y = -Math.abs(vel.y)*0.97; }
+    for(const g of guests){
+      if(g.laughing) continue;
+      const gx = g.fx*W, gy = g.fy*H;
+      if(Math.hypot(gx-pos.x, gy-pos.y) < g.r+16) laughAt(g, now);
+    }
+    ball.style.left = (pos.x-18).toFixed(0)+'px';
+    ball.style.top  = (pos.y-18).toFixed(0)+'px';
+    const left = Math.max(0, END-(now-t0));
+    const tf = $('tFill'); if(tf) tf.style.width = (left/END*100).toFixed(1)+'%';
+    if(!finished && now-t0 >= END){ finishG2(false); return; }
+  });
+
+  function sheArrives(){
+    const d = document.createElement('div');
+    d.className = 'her-arrive';
+    d.innerHTML = blobHTML('#ffc7c0','face-laugh',62) + sparkleHTML(15) + '<span class="bub">ha ha ha!</span>';
+    scene.appendChild(d);
+    spawnHa(W*0.8, H*0.3);
+  }
+  function finishG2(win){
+    finished = true; clearRaf();
+    if(win){
+      scene.classList.add('room-shake');
+      for(let i=0;i<14;i++){
+        tick(()=> spawnHa(Math.random()*W, Math.random()*H*0.7), i*90);
+      }
+      tick(()=> scene.classList.remove('room-shake'), 1500);
+      tick(sheArrives, 1100);
+      tick(()=>{
+        const o = showOverlay(
+          '<div class="o-quote">the whole room, laughing.</div>' +
+          '<div class="o-text">the joy with no manners, the kind that grabs a whole room by the collar and shakes it until it\u2019s laughing too. you helped. she did the rest. that\u2019s how it always goes.</div>' +
+          '<button class="btn" data-cont>continue</button>'
+        );
+        o.querySelector('[data-cont]').onclick = ch3Card;
+      }, 2800);
+    } else {
+      tick(sheArrives, 600);
+      tick(()=>{
+        const o = showOverlay(
+          '<div class="o-quote">almost the whole room. almost.</div>' +
+          '<div class="o-text">she arrived anyway, laughing. she always does.</div>' +
+          '<button class="btn" data-cont>continue</button>'
+        );
+        o.querySelector('[data-cont]').onclick = ch3Card;
+      }, 1800);
+    }
+  }
+}
+
+// ================================================================
+// GAME 3. the quiet moments
+// ================================================================
+function gameThree(){
+  setScreen(
+    '<div class="card game-card">' +
+      '<div class="hud"><div>'+heartsRow(3)+' the quiet moments</div>' +
+      '<div class="hud-r warmwrap"><span class="heart">♥</span><div class="warmbar"><div class="warmfill" id="warmFill"></div></div></div></div>' +
+      '<div class="scene night" id="scene">' +
+        starsHTML(15) +
+        '<div class="moon"></div>' +
+        '<div class="bench"></div>' +
+        '<div class="stand" style="right:12%;bottom:8%;z-index:4">' + blobHTML('#d8a8b8','face-quiet',56,'height:42px;') + '</div>' +
+        '<div class="stand" style="left:6%;bottom:8%;z-index:5">' + blobHTML('#8fa8c8','face-happy',54) + '</div>' +
+        '<div class="awk hidden" id="awkLine"></div>' +
+        '<div class="staymsg" id="stayMsg"></div>' +
+        '<button class="staybtn" id="stayBtn">stay here with her</button>' +
+        '<div class="overlay hidden" id="overlay"></div>' +
+      '</div>' +
+      '<div class="game-hint">she\u2019s quiet. the words in your head are all wrong. so stay.</div>' +
+    '</div>'
+  );
+  const scene = $('scene');
+  let warmth = 30, wrong = 0, finished = false;
+  let lastStay = 0, stayMsgI = 0;
+  const t0 = performance.now(), END = 24000;
+  const msgs = ['still here.','not going anywhere.','hands in pockets.','quiet counts too.','that\u2019s the whole trick.'];
+  const opts = [
+    { t:'"are you okay?"',  line:'that came out wrong.' },
+    { t:'"want to talk about it?"', line:'she shook her head. softly.' },
+    { t:'"i could make you laugh?"', line:'you said it too fast.' }
+  ];
+  let optIdx = 0;
+  tick(()=>{ if(!finished) tryNext(); }, 2600);
+  function tryNext(){
+    if(finished || optIdx >= opts.length) return;
+    const o = opts[optIdx++];
+    const b = document.createElement('button');
+    b.className = 'option center';
+    b.textContent = o.t;
+    scene.appendChild(b);
+    b.onclick = ()=>{
+      if(finished) return;
+      wrong++;
+      b.remove();
+      const aw = $('awkLine');
+      aw.textContent = o.line;
+      aw.classList.remove('hidden');
+      tick(()=>{ if(aw && !finished) aw.classList.add('hidden'); }, 2600);
+      tick(()=>{ if(!finished) tryNext(); }, 3400);
+    };
+  }
+
+  $('stayBtn').addEventListener('pointerdown', ()=>{
+    const now = performance.now();
+    if(now - lastStay < 700) return;
+    lastStay = now;
+    warmth = Math.min(100, warmth + 6);
+    const msg = $('stayMsg');
+    msg.textContent = msgs[stayMsgI % msgs.length];
+    stayMsgI++;
+    msg.classList.add('show');
+    tick(()=> msg.classList.remove('show'), 1600);
+    // tiny heart particle
+    const hp = document.createElement('span');
+    hp.className = 'hburst';
+    hp.textContent = '♥';
+    hp.style.left = '50%'; hp.style.bottom = '92px';
+    hp.style.setProperty('--dx', (Math.random()*60-30)+'px');
+    hp.style.setProperty('--dy', '-34px');
+    scene.appendChild(hp);
+    tick(()=>{ if(hp.parentNode) hp.remove(); }, 1100);
+  });
+
+  frame(()=>{
+    const now = performance.now();
+    warmth = Math.min(100, warmth + 1.9*16/1000);
+    const wf = $('warmFill'); if(wf) wf.style.width = warmth.toFixed(1)+'%';
+    const left = Math.max(0, END-(now-t0));
+    const tf = $('tFill'); if(tf) tf.style.width = (left/END*100).toFixed(1)+'%';
+    if(!finished && now-t0 >= END){ finishG3(); return; }
+  });
+
+  function finishG3(){
+    finished = true; clearRaf();
+    let smile;
+    if(warmth >= 85){ smile = 'she looks up. just for a second. you catch the corner of a smile.'; }
+    else if(warmth >= 55){ smile = 'she almost smiles. almost.'; }
+    else { smile = "she doesn't look up. but you're still here. that counts."; }
+    let extra = '';
+    if(wrong === 3) extra = 'you said the wrong things. all three of them. she didn\u2019t mind. she knew you were trying.';
+    else if(wrong > 0) extra = 'you said some wrong things. it\u2019s okay. trying counts.';
+    const o = showOverlay(
+      '<div class="o-quote">'+smile+'</div>' +
+      (extra ? '<div class="o-text">'+extra+'</div>' : '') +
+      '<div class="o-text">so you stand there, useless, hands in your pockets. but you don\u2019t leave.</div>' +
+      '<button class="btn" data-cont>continue</button>',
+      true
+    );
+    o.querySelector('[data-cont]').onclick = ch4Card;
+  }
+}
+
+// ================================================================
+// GAME 4. staying put
+// ================================================================
+function gameFour(){
+  setScreen(
+    '<div class="card game-card">' +
+      '<div class="hud"><div>'+heartsRow(4)+' the last part</div><div class="hud-r">chapter 4 of 4</div></div>' +
+      '<div class="scene night" id="scene">' +
+        starsHTML(12) +
+        '<div class="moon"></div>' +
+        '<div class="scene-label">your hands are shaking.</div>' +
+        '<div class="glow" id="glow"></div>' +
+        '<div class="stand" style="left:26%;bottom:10%;z-index:5">' + blobHTML('#8fa8c8','face-happy',56) + '</div>' +
+        '<div class="stand" style="right:24%;bottom:10%;z-index:5">' + blobHTML('#d8a8b8','face-quiet',58) + '</div>' +
+        '<div class="hand mine" id="myHand"></div>' +
+        '<div class="hand hers" id="herHand"></div>' +
+        '<div class="overlay hidden" id="overlay"></div>' +
+      '</div>' +
+      '<div class="btnrow">' +
+        '<button class="btn" id="holdBtn">hold her hand</button>' +
+        '<button class="btn soft" id="pocketBtn">keep them in your pockets</button>' +
+      '</div>' +
+    '</div>'
+  );
+  const scene = $('scene');
+  const holdBtn = $('holdBtn'), pocketBtn = $('pocketBtn');
+
+  function burstHearts(n){
+    for(let i=0;i<n;i++){
+      const hp = document.createElement('span');
+      hp.className = 'hburst';
+      hp.textContent = Math.random() < .8 ? '♥' : '✦';
+      hp.style.left = (30+Math.random()*40)+'%';
+      hp.style.bottom = (30+Math.random()*40)+'%';
+      hp.style.setProperty('--dx', (Math.random()*120-60)+'px');
+      hp.style.setProperty('--dy', (-(30+Math.random()*90))+'px');
+      scene.appendChild(hp);
+      tick(()=>{ if(hp.parentNode) hp.remove(); }, 1100);
+    }
+  }
+  function endButtonsOff(){
+    holdBtn.disabled = true; pocketBtn.disabled = true;
+    holdBtn.style.opacity = .55; pocketBtn.style.opacity = .55;
+  }
+  function finish(line1, line2){
+    const o = showOverlay(
+      '<div class="o-quote">'+line1+'</div>' +
+      '<div class="o-text">'+line2+'</div>' +
+      '<button class="btn" data-cont>continue</button>',
+      true
+    );
+    o.querySelector('[data-cont]').onclick = showPoem;
+  }
+  holdBtn.addEventListener('click', ()=>{
+    endButtonsOff();
+    $('myHand').classList.add('reach');
+    $('herHand').classList.add('accept');
+    $('glow').classList.add('on');
+    burstHearts(14);
+    tick(()=> finish("she doesn't pull away.", "that's the whole answer."), 1900);
+  });
+  pocketBtn.addEventListener('click', ()=>{
+    endButtonsOff();
+    $('myHand').classList.add('calm');
+    $('glow').classList.add('on');
+    burstHearts(8);
+    tick(()=> finish("okay. staying put. that's enough.", "that's the whole trick."), 1700);
+  });
+}
+
+// ================================================================
+// THE POEM
+// ================================================================
+function showPoem(){
+  const ls = POEM.map((l,i)=>
+    l ? '<div class="pl" style="animation-delay:'+(0.35+i*0.5)+'s">'+l+'</div>'
+      : '<div class="pl-sp"></div>'
+  ).join('');
+  setScreen(
+    '<div class="card poem-card">' + heartsBG(12) +
+    '<div class="poem-title">staying put</div>' +
+    '<div class="poem-sub">a poem, and now a tiny game</div>' +
+    '<div class="lines">'+ls+'</div>' +
+    '<div class="poem-foot">every word of the poem is yours.<br>we just made it wiggle. &#9829;<br>♪ soundtrack: melukis senja · budi doremi</div>' +
+    '<div style="text-align:center"><button class="btn" id="againBtn">play again</button></div>' +
+    '</div>'
+  );
+  $('againBtn').onclick = titleScreen;
+}
+
+// ---------- go ----------
+titleScreen();
+</script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a331cf6e5afcb2f4',t:'MTc4ODA3MjA5MQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v3d52b47920f24c319d37e2661827c42b1787588026925" integrity="sha512-d9sL6GJLXn6fInD1+TVXhTcQOsmxeHfmHAvwGDIxp5TO+uo1fiWW7mHomMj4MLRlCsJDTqXzWLHJFFlPCEIj/A==" data-cf-beacon='{"version":"2024.11.0","token":"1954b47c125f43f8b4338b3c4f804e4f"}' crossorigin="anonymous"></script>
+</body>
+</html>
